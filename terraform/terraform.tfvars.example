@@ -1,0 +1,59 @@
+# ============================================================================
+# Terraform Variables Example
+# ============================================================================
+# Copy this file to terraform.tfvars and update with your values
+# ============================================================================
+
+# Basic Configuration
+aws_region   = "eu-west-3"
+project_name = "x-twitter-recreation"
+environment  = "prod"
+
+# Network Configuration (matches diagram exactly)
+vpc_cidr                          = "10.0.0.0/16"
+availability_zones                = ["eu-west-3a"]
+public_subnet_cidrs               = ["10.0.1.0/24"]
+private_app_subnet_cidrs          = ["10.0.2.0/24"]
+private_microservice_subnet_cidrs = ["10.0.3.0/24"]
+database_subnet_cidrs             = ["10.0.4.0/24"]
+
+# Application Ports
+app_port          = 3000
+microservice_port = 8080
+
+# SSL Certificate (optional - for HTTPS on ALB)
+# certificate_arn = "arn:aws:acm:eu-west-3:ACCOUNT_ID:certificate/CERTIFICATE_ID"
+
+# Database Configuration
+db_name                     = "xtwitter"
+db_username                 = "postgres"
+db_password                 = "CHANGE_ME_SECURE_PASSWORD"
+db_engine_version           = "15.3"
+db_instance_class           = "db.t3.micro"
+db_allocated_storage        = 20
+rds_multi_az                = false
+rds_backup_retention_period = 7
+rds_deletion_protection     = false
+rds_skip_final_snapshot     = true
+
+# ElastiCache Configuration
+valkey_engine_version  = "7.2"
+valkey_node_type       = "cache.t4g.micro"
+valkey_num_cache_nodes = 1
+
+# ECS Configuration
+main_app_image          = "your-registry/main-app:latest"
+username_check_image    = "your-registry/username-check:latest"
+main_app_cpu            = 512
+main_app_memory         = 1024
+microservice_cpu        = 256
+microservice_memory     = 512
+main_app_desired_count  = 1
+microservice_desired_count = 1
+
+# S3 and CloudFront
+s3_bucket_prefix       = "x-twitter-static"
+enable_versioning      = true
+cloudfront_default_ttl = 3600
+cloudfront_max_ttl     = 86400
+
