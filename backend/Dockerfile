@@ -1,6 +1,6 @@
 
 # Multi-stage build for better optimization
-FROM openjdk:21-jdk-slim AS builder
+FROM openjdk:21-jdk AS builder
 
 # Install Java 25 manually since Docker images don't exist yet
 RUN apt-get update && apt-get install -y \
@@ -38,7 +38,7 @@ RUN chmod +x ./gradlew
 RUN ./gradlew clean bootJar
 
 # Runtime stage
-FROM openjdk:21-jre-slim
+FROM openjdk:21-jre
 
 # Install Java 25 manually for runtime
 RUN apt-get update && apt-get install -y \
