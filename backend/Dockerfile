@@ -1,11 +1,23 @@
 
 # Multi-stage build for better optimization
-FROM openjdk:25-jdk-slim AS builder
+FROM openjdk:21-jdk-slim AS builder
 
-# Install required packages
+# Install Java 25 manually since Docker images don't exist yet
 RUN apt-get update && apt-get install -y \
+    wget \
+    tar \
     findutils \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install Java 25
+RUN wget https://download.java.net/java/GA/jdk25/25.0.0/binaries/openjdk-25_linux-x64_bin.tar.gz \
+    && tar -xzf openjdk-25_linux-x64_bin.tar.gz \
+    && mv jdk-25.0.0 /opt/java25 \
+    && rm openjdk-25_linux-x64_bin.tar.gz
+
+# Set Java 25 as default
+ENV JAVA_HOME=/opt/java25
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Set working directory
 WORKDIR /app
@@ -26,12 +38,24 @@ RUN chmod +x ./gradlew
 RUN ./gradlew clean bootJar
 
 # Runtime stage
-FROM openjdk:25-jre-slim
+FROM openjdk:21-jre-slim
 
-# Install required packages
+# Install Java 25 manually for runtime
 RUN apt-get update && apt-get install -y \
+    wget \
+    tar \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install Java 25
+RUN wget https://download.java.net/java/GA/jdk25/25.0.0/binaries/openjdk-25_linux-x64_bin.tar.gz \
+    && tar -xzf openjdk-25_linux-x64_bin.tar.gz \
+    && mv jdk-25.0.0 /opt/java25 \
+    && rm openjdk-25_linux-x64_bin.tar.gz
+
+# Set Java 25 as default
+ENV JAVA_HOME=/opt/java25
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Set working directory
 WORKDIR /app
