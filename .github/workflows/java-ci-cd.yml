@@ -137,13 +137,61 @@ jobs:
           container-name: main-app
           image: ${{ steps.build-image.outputs.image }}
 
+      - name: Validate production secrets
+        run: |
+          echo "Validating production secrets..."
+          if [ -z "${{ secrets.PROD_DATABASE_URL }}" ]; then
+            echo "❌ PROD_DATABASE_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_DATABASE_USERNAME }}" ]; then
+            echo "❌ PROD_DATABASE_USERNAME secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_DATABASE_PASSWORD }}" ]; then
+            echo "❌ PROD_DATABASE_PASSWORD secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_BREVO_API_KEY }}" ]; then
+            echo "❌ PROD_BREVO_API_KEY secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_SMTP_EMAIL }}" ]; then
+            echo "❌ PROD_SMTP_EMAIL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_ORIGIN_BASEURL }}" ]; then
+            echo "❌ PROD_ORIGIN_BASEURL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PROD_JWT_SECRET }}" ]; then
+            echo "❌ PROD_JWT_SECRET secret is not set"
+            exit 1
+          fi
+          echo "✅ All production secrets are configured"
+
       - name: Update environment variables for production
         run: |
           # Update JPA_HIBERNATE_DDL to 'validate' for production safety
           jq '(.containerDefinitions[0].environment[] | select(.name == "JPA_HIBERNATE_DDL") | .value) = "validate"' task-definition.json > task-definition-updated.json
 
           # Update SPRING_PROFILES_ACTIVE to production
-          jq '(.containerDefinitions[0].environment[] | select(.name == "SPRING_PROFILES_ACTIVE") | .value) = "production"' task-definition-updated.json > task-definition-final.json
+          jq '(.containerDefinitions[0].environment[] | select(.name == "SPRING_PROFILES_ACTIVE") | .value) = "production"' task-definition-updated.json > task-definition-step1.json
+
+          # Update database configuration with production values
+          jq '(.containerDefinitions[0].environment[] | select(.name == "SPRING_DATASOURCE_URL") | .value) = "${{ secrets.PROD_DATABASE_URL }}"' task-definition-step1.json > task-definition-step2.json
+          jq '(.containerDefinitions[0].environment[] | select(.name == "SPRING_DATASOURCE_USERNAME") | .value) = "${{ secrets.PROD_DATABASE_USERNAME }}"' task-definition-step2.json > task-definition-step3.json
+          jq '(.containerDefinitions[0].environment[] | select(.name == "SPRING_DATASOURCE_PASSWORD") | .value) = "${{ secrets.PROD_DATABASE_PASSWORD }}"' task-definition-step3.json > task-definition-step4.json
+
+          # Update API configuration with production values
+          jq '(.containerDefinitions[0].environment[] | select(.name == "BREVO_API_KEY") | .value) = "${{ secrets.PROD_BREVO_API_KEY }}"' task-definition-step4.json > task-definition-step5.json
+          jq '(.containerDefinitions[0].environment[] | select(.name == "SMTP_MY_EMAIL") | .value) = "${{ secrets.PROD_SMTP_EMAIL }}"' task-definition-step5.json > task-definition-step6.json
+
+          # Update CORS configuration with production values
+          jq '(.containerDefinitions[0].environment[] | select(.name == "ORIGIN_BASEURL") | .value) = "${{ secrets.PROD_ORIGIN_BASEURL }}"' task-definition-step6.json > task-definition-step7.json
+
+          # Update JWT configuration with production values
+          jq '(.containerDefinitions[0].environment[] | select(.name == "JWT_SECRET") | .value) = "${{ secrets.PROD_JWT_SECRET }}"' task-definition-step7.json > task-definition-final.json
 
           mv task-definition-final.json task-definition.json
 
