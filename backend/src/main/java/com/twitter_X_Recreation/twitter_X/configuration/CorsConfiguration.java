@@ -10,14 +10,13 @@ public class CorsConfiguration implements WebMvcConfigurer {
 
     private final String frontEndOrigin;
 
-    public CorsConfiguration( @Value("${spring.web.cors.allowed-origins}") String frontEndOrigin) {
+    public CorsConfiguration(@Value("${spring.web.cors.allowed-origins:http://localhost:3000}") String frontEndOrigin) {
         this.frontEndOrigin = frontEndOrigin;
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-
                 .allowedOrigins(frontEndOrigin) // Use the value from your properties
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
