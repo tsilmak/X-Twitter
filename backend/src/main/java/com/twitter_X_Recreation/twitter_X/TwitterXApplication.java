@@ -21,7 +21,7 @@ public class TwitterXApplication {
 	@Bean
 	CommandLineRunner run(RoleRepository roleRepository, UserRepository userRepository, UserService userService) {
 		return args -> {
-			// Step 1: Create USER and ADMIN roles if they don’t exist
+			// Step 1: Create USER and ADMIN roles if they don’t exist - TESTs
 			Optional<Role> userRole = roleRepository.findRoleByAuthority("USER");
 			if (userRole.isEmpty()) {
 				Role role = new Role();
