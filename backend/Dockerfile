@@ -1,6 +1,6 @@
 
 # Multi-stage build for better optimization
-FROM openjdk:21-jdk-slim AS builder
+FROM openjdk:25-jdk-slim AS builder
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
@@ -26,7 +26,7 @@ RUN chmod +x ./gradlew
 RUN ./gradlew clean bootJar
 
 # Runtime stage
-FROM openjdk:21-jre-slim
+FROM openjdk:25-jre-slim
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
