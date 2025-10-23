@@ -3,8 +3,12 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'backend/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 env:
