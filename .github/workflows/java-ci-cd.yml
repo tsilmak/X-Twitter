@@ -141,34 +141,34 @@ jobs:
         run: |
           echo "Validating production secrets..."
           if [ -z "${{ secrets.PROD_DATABASE_URL }}" ]; then
-            echo "❌ PROD_DATABASE_URL secret is not set"
+            echo "PROD_DATABASE_URL secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_DATABASE_USERNAME }}" ]; then
-            echo "❌ PROD_DATABASE_USERNAME secret is not set"
+            echo "PROD_DATABASE_USERNAME secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_DATABASE_PASSWORD }}" ]; then
-            echo "❌ PROD_DATABASE_PASSWORD secret is not set"
+            echo "PROD_DATABASE_PASSWORD secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_BREVO_API_KEY }}" ]; then
-            echo "❌ PROD_BREVO_API_KEY secret is not set"
+            echo "PROD_BREVO_API_KEY secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_SMTP_EMAIL }}" ]; then
-            echo "❌ PROD_SMTP_EMAIL secret is not set"
+            echo "PROD_SMTP_EMAIL secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_ORIGIN_BASEURL }}" ]; then
-            echo "❌ PROD_ORIGIN_BASEURL secret is not set"
+            echo "PROD_ORIGIN_BASEURL secret is not set"
             exit 1
           fi
           if [ -z "${{ secrets.PROD_JWT_SECRET }}" ]; then
-            echo "❌ PROD_JWT_SECRET secret is not set"
+            echo "PROD_JWT_SECRET secret is not set"
             exit 1
           fi
-          echo "✅ All production secrets are configured"
+          echo "All production secrets are configured"
 
       - name: Update environment variables for production
         run: |
