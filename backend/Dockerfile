@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y \
     findutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install Java 25
-RUN wget https://download.java.net/java/GA/jdk25/25.0.0/binaries/openjdk-25_linux-x64_bin.tar.gz \
-    && tar -xzf openjdk-25_linux-x64_bin.tar.gz \
-    && mv jdk-25.0.0 /opt/java25 \
-    && rm openjdk-25_linux-x64_bin.tar.gz
+# Download and install Java 25 from Eclipse Temurin
+RUN wget https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz \
+    && tar -xzf OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz \
+    && mv jdk-25+36 /opt/java25 \
+    && rm OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz
 
 # Set Java 25 as default
 ENV JAVA_HOME=/opt/java25
@@ -47,11 +47,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install Java 25
-RUN wget https://download.java.net/java/GA/jdk25/25.0.0/binaries/openjdk-25_linux-x64_bin.tar.gz \
-    && tar -xzf openjdk-25_linux-x64_bin.tar.gz \
-    && mv jdk-25.0.0 /opt/java25 \
-    && rm openjdk-25_linux-x64_bin.tar.gz
+# Download and install Java 25 from Eclipse Temurin
+RUN wget https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz \
+    && tar -xzf OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz \
+    && mv jdk-25+36 /opt/java25 \
+    && rm OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz
 
 # Set Java 25 as default
 ENV JAVA_HOME=/opt/java25
