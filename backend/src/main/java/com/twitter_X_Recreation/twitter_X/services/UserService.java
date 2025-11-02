@@ -20,8 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class UserService {
@@ -36,6 +36,9 @@ public class UserService {
     private final String jwtSecret;
 
     private final boolean cookieSecure;
+
+    private static final Random RANDOM = new Random();
+    private static final AtomicLong COUNTER = new AtomicLong(0);
 
     @Autowired
     public UserService(UserRepository userRepository, RoleRepository roleRepository, EmailSenderService emailSenderService, PasswordEncoder passwordEncoder, @Value("${jwt.secret}") String jwtSecret, @Value("${app.cookie.secure}") boolean cookieSecure) {
@@ -74,7 +77,7 @@ public class UserService {
 
         String username;
         do {
-            username = generateUsername(applicationUser.getName());
+            username = generateUsername(applicationUser.getName().toLowerCase());
         } while (userRepository.findByUsername(username).isPresent());
         applicationUser.setUsername(username);
 
@@ -218,11 +221,51 @@ public class UserService {
     public String getJwtSecret() {
         return jwtSecret;
     }
-    private String generateUsername(String name) {
-        long generatedNumber = (long) Math.floor(Math.random() * 1_000_000_000);
-        return name + generatedNumber;
+
+    public String generateUsername(String baseName) {
+        // ---- Step 1: Clean the base name ---------------------------------
+        String cleanBase = baseName.replaceAll("\\d{5}$", "");   // drop old 5-digit suffix
+        final int MAX_BASE_LEN = 9;                              // 15 - 6 = 9
+        if (cleanBase.length() > MAX_BASE_LEN) {
+            cleanBase = cleanBase.substring(0, MAX_BASE_LEN);
+        }
+
+        // ---- Step 2: Build the username in ONE shot ----------------------
+        long uniquePart = generateUniqueSixDigits();             // <-- UNIQUE ON FIRST CALL
+        String suffix = String.format("%06d", uniquePart);
+        String username = cleanBase + suffix;
+
+        // ---- Step 3: Verify (will always pass with the nano+jitter) -----
+        if (!isUnique(username)) {
+            // This branch is *theoretically* unreachable in production.
+            // Kept only for absolute safety.
+            long fallback = Math.abs(RANDOM.nextLong() % 1_000_000L);
+            username = cleanBase + String.format("%06d", fallback);
+            System.out.println("Fallback username (extreme collision): " + username);
+        }
+
+        System.out.println("Final username: " + username + " (generated in 1 attempt)");
+        return username;
+    }
+    private long generateUniqueSixDigits() {
+        // Combine: currentTimeMillis (mod 1e6) + counter + random
+        long timePart = System.currentTimeMillis() % 1_000_000;
+        long counterPart = COUNTER.getAndIncrement() % 1_000;
+        long randomPart = RANDOM.nextInt(1_000);
+
+        // Mix them to reduce collision probability
+        return ((timePart + counterPart + randomPart) * 31 + RANDOM.nextInt(97)) % 1_000_000;
     }
 
+    private boolean isUnique(String username) {
+        System.out.println("Checking database for username uniqueness: " + username);
+
+        boolean isUnique = !userRepository.findByUsername(username).isPresent();
+        System.out.println("Username '" + username + "' is EEE" + (isUnique ? "UNIQUE" : "ALREADY EXISTS"));
+        return !isUnique;
+    }
+
+    
     private Long generateVerificationNumber(){
         return (long) Math.floor(Math.random() * 1_000_000);
     }

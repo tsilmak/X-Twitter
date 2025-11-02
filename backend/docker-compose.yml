@@ -1,4 +1,3 @@
-version: "3"
 services:
   db:
     image: postgres:latest
@@ -10,6 +9,13 @@ services:
     ports:
       - "5469:5432"
 
+  redis:
+    image: redis:latest
+    container_name: twitter-x-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+
   backend:
     build: .
     container_name: backend-main-java
@@ -17,6 +23,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+      - redis
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/Twitter-X-Recreation-DB
       SPRING_DATASOURCE_USERNAME: user
@@ -27,3 +34,5 @@ services:
       ORIGIN_BASEURL: http://localhost:3000
       JWT_SECRET: your-jwt-secret-key-change-this-in-production
       JWT_EXPIRATION: 86400000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379

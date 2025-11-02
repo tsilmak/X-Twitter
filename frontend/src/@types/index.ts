@@ -33,3 +33,8 @@ export interface ApiErrorResponse {
   data: ApiErrorData;
   status: StatusCodes;
 }
+
+export interface UpdateUserInfoForm {
+  isModal: boolean;
+  username: string;
+}

@@ -88,6 +88,7 @@ const SettingsConsentForm: React.FC<SettingsConsentFormProps> = ({
         email,
         birthDate,
       }).unwrap();
+      console.log("USERNAME", userObject.username);
 
       setUsername(userObject.username);
 
@@ -105,17 +106,14 @@ const SettingsConsentForm: React.FC<SettingsConsentFormProps> = ({
           apiError &&
           apiError.data.exception === "EmailFailedToSendException"
         ) {
-          // Extract the actual verification code from the error message
           setEmailFailedCode("123456");
           setShowConfirmationForm(true);
         } else {
-          // For other errors, let the outer catch handle it
           throw emailErr;
         }
       }
     } catch (err) {
       // Error handling is managed by useEffect, by going back
-      console.error(err);
     }
   };
 

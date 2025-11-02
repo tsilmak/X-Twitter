@@ -22,14 +22,17 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 # Set working directory
 WORKDIR /app
 
-# Copy Gradle wrapper and build files
+# Copy Gradle wrapper and build files first (these change less frequently)
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle .
 COPY settings.gradle .
 
-# Copy source code
+# Copy source code last (this changes most frequently)
 COPY src src
+
+# Add a cache-busting argument that can be passed during build
+ARG CACHE_BUST=1
 
 # Make gradlew executable
 RUN chmod +x ./gradlew

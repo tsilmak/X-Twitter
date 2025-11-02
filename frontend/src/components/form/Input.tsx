@@ -23,8 +23,10 @@ const Input = ({
   isInputNumeric,
   value,
 }: InputProps) => {
-  const [charCount, setCharCount] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Calculate charCount directly from value prop
+  const charCount = value?.length || 0;
 
   return (
     <div className="relative">
@@ -40,7 +42,6 @@ const Input = ({
         value={value}
         maxLength={maxCharLength}
         onChange={(e) => {
-          setCharCount(e.target.value.length);
           onChange(e.target.value);
         }}
         onFocus={() => setIsFocused(true)}

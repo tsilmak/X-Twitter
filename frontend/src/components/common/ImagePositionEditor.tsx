@@ -1,5 +1,4 @@
 import React, { useRef, useState } from "react";
-import Image from "next/image";
 import Button from "../form/Button";
 
 interface ImagePosition {
@@ -192,7 +191,7 @@ const ImagePositionEditor: React.FC<ImagePositionEditorProps> = ({
         <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black p-6">
           {/* Background image (dimmed) */}
           <div className="absolute inset-0 overflow-hidden opacity-40">
-            <Image
+            <img
               src={imageUrl}
               alt="Background"
               className="absolute left-1/2 top-1/2 max-w-none"
@@ -217,7 +216,7 @@ const ImagePositionEditor: React.FC<ImagePositionEditorProps> = ({
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               >
-                <Image
+                <img
                   ref={imageRef}
                   src={imageUrl}
                   alt="Position your image"

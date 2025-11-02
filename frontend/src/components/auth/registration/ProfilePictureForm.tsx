@@ -9,6 +9,7 @@ import {
   UsernameUpdateFormModal,
   UsernameUpdateFormNonModal,
 } from "./UsernameUpdateForm";
+import { UpdateUserInfoForm } from "@/@types";
 
 interface ImagePosition {
   x: number;
@@ -16,7 +17,10 @@ interface ImagePosition {
   scale: number;
 }
 
-export const ProfilePictureFormModal: React.FC = () => {
+export const ProfilePictureFormModal: React.FC<UpdateUserInfoForm> = ({
+  isModal,
+  username,
+}) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isPositioning, setIsPositioning] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
@@ -48,7 +52,7 @@ export const ProfilePictureFormModal: React.FC = () => {
   };
 
   if (showUsernameForm) {
-    return <UsernameUpdateFormModal />;
+    return <UsernameUpdateFormModal username={username} isModal={isModal} />;
   }
 
   const handleApplyPosition = (imageUrl: string, position: ImagePosition) => {
@@ -108,6 +112,9 @@ export const ProfilePictureFormModal: React.FC = () => {
                   <Image
                     src={selectedImage}
                     alt="Profile picture"
+                    width={176}
+                    height={176}
+                    unoptimized={true}
                     onClick={handleImageClick}
                     className="h-44 w-44 cursor-pointer rounded-full border-2 border-borderColor object-cover transition-opacity group-hover:opacity-80"
                   />
@@ -161,7 +168,10 @@ export const ProfilePictureFormModal: React.FC = () => {
   );
 };
 
-export const ProfilePictureFormNonModal: React.FC = () => {
+export const ProfilePictureFormNonModal: React.FC<UpdateUserInfoForm> = ({
+  isModal,
+  username,
+}) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isPositioning, setIsPositioning] = useState(false);
   const [tempImage, setTempImage] = useState<string | null>(null);
@@ -193,7 +203,7 @@ export const ProfilePictureFormNonModal: React.FC = () => {
   };
 
   if (showUsernameForm) {
-    return <UsernameUpdateFormNonModal />;
+    return <UsernameUpdateFormNonModal username={username} isModal={isModal} />;
   }
 
   const handleApplyPosition = (imageUrl: string, position: ImagePosition) => {
@@ -254,6 +264,9 @@ export const ProfilePictureFormNonModal: React.FC = () => {
                   <Image
                     src={selectedImage}
                     alt="Profile picture"
+                    width={176}
+                    height={176}
+                    unoptimized={true}
                     onClick={handleImageClick}
                     className="h-44 w-44 cursor-pointer rounded-full border-2 border-borderColor object-cover transition-opacity group-hover:opacity-80"
                   />

@@ -11,13 +11,9 @@ import { setUser } from "@/app/lib/features/user/userSlice";
 import { useAppDispatch } from "@/app/lib/hooks";
 import Button from "@/components/form/Button";
 import Modal from "@/components/common/Modal";
+import { UpdateUserInfoForm } from "@/@types";
 
-type PasswordUpdateFormProps = {
-  isModal: boolean;
-  username: string;
-};
-
-const PasswordUpdateForm = ({ isModal, username }: PasswordUpdateFormProps) => {
+const PasswordUpdateForm = ({ isModal, username }: UpdateUserInfoForm) => {
   const dispatch = useAppDispatch();
 
   const [updatePassword, { isLoading, isError, error }] =
@@ -53,8 +49,12 @@ const PasswordUpdateForm = ({ isModal, username }: PasswordUpdateFormProps) => {
   };
 
   if (showProfilePictureUpdateForm) {
-    if (isModal) return <ProfilePictureFormModal />;
-    if (!isModal) return <ProfilePictureFormNonModal />;
+    if (isModal)
+      return <ProfilePictureFormModal username={username} isModal={isModal} />;
+    if (!isModal)
+      return (
+        <ProfilePictureFormNonModal username={username} isModal={isModal} />
+      );
   }
   return (
     <Modal

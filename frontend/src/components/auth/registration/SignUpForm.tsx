@@ -12,12 +12,6 @@ import { ApiExceptions } from "@/@types";
 import Modal from "@/components/common/Modal";
 import Link from "next/link";
 
-/**
- * SignUpForm component
- * @param isModal - Determines the rendering context:
- *   - true: User navigated from root page (intercepting route), displays as modal with transparent background overlay
- *   - false: User accessed directly via URL, page refresh, browser search, or external link - displays as full page
- */
 export default function SignUpForm({ isModal = false }) {
   const router = useRouter();
 

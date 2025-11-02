@@ -1,70 +1,177 @@
 import Navigation from "@/hooks/Navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "@/components/common/Modal";
 import Button from "@/components/form/Button";
 import Input from "@/components/form/Input";
 import { useRouter } from "next/navigation";
+import { useLazyCheckUsernameQuery } from "@/app/lib/api/usernameApi";
+import { UpdateUserInfoForm } from "@/@types";
+import { validateUsername } from "@/utils/lib";
 
-// Mock username validation function
-const validateUsername = (
-  username: string
-): { isValid: boolean; error?: string } => {
-  if (!username.trim()) {
-    return { isValid: false, error: "Username is required" };
-  }
-  if (username.length < 3) {
-    return { isValid: false, error: "Username must be at least 3 characters" };
-  }
-  if (username.length > 15) {
-    return { isValid: false, error: "Username must be 15 characters or less" };
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return {
-      isValid: false,
-      error: "Username can only contain letters, numbers, and underscores",
-    };
-  }
-  return { isValid: true };
-};
-
-export const UsernameUpdateFormModal: React.FC = () => {
-  const [username, setUsername] = useState("");
+export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
+  isModal,
+  username,
+}) => {
+  // Initialize with current username only once - use lazy initializer
+  const [futureUsername, setFutureUsername] = useState<string>(
+    () => username || ""
+  );
   const [validation, setValidation] = useState({ isValid: true, error: "" });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCookieTestLoading, setIsCookieTestLoading] =
+    useState<boolean>(false);
   const router = useRouter();
+  const [checkUsername, { isLoading: isChecking }] =
+    useLazyCheckUsernameQuery();
+
+  const handleCookieTest = async () => {
+    setIsCookieTestLoading(true);
+    try {
+      // Log all available cookies
+      const allCookies = document.cookie;
+      console.log("Available cookies:", allCookies);
+
+      // Parse cookies into an object
+      const cookies: Record<string, string> = {};
+      if (allCookies) {
+        allCookies.split(";").forEach((cookie) => {
+          const [name, value] = cookie.trim().split("=");
+          if (name && value) {
+            cookies[name] = decodeURIComponent(value);
+          }
+        });
+      }
+      console.log("Parsed cookies:", cookies);
+
+      // Call Next.js API route which will proxy to Rust backend with cookies
+      const cookieTestResponse = await fetch("/api/cookie-test", {
+        method: "GET",
+        credentials: "include", // This will send cookies to Next.js API route
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const responseData = await cookieTestResponse.json();
+      console.log("Cookie test response:", responseData);
+      console.log("Cookies sent:", allCookies || "No cookies found");
+
+      alert(
+        `Response: ${JSON.stringify(responseData, null, 2)}\n\n` +
+          `Available cookies: ${allCookies || "None"}\n\n` +
+          `Check console for details.`
+      );
+    } catch (cookieError) {
+      console.error("Cookie test failed:", cookieError);
+      console.log("Available cookies:", document.cookie || "None");
+      alert(
+        `Cookie test failed. Check console for details.\n\n` +
+          `Available cookies: ${document.cookie || "None"}`
+      );
+    } finally {
+      setIsCookieTestLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Skip API call for empty or invalid usernames
+    const validationResult = validateUsername(futureUsername);
+    if (!futureUsername.trim() || !validationResult.isValid) {
+      setValidation({
+        isValid: validationResult.isValid,
+        error: validationResult.error || "",
+      });
+      return;
+    }
+
+    // If the future username is the same as current username, it's valid (no API call needed)
+    if (futureUsername === username) {
+      setValidation({ isValid: true, error: "" });
+      return;
+    }
+
+    // Call API immediately on every keystroke for different usernames
+    checkUsername(futureUsername)
+      .unwrap()
+      .then((result) => {
+        if (result.available) {
+          setValidation({ isValid: true, error: "" });
+        } else {
+          setValidation({
+            isValid: false,
+            error: result.message || "Username is already taken",
+          });
+        }
+      })
+      .catch((error: any) => {
+        // Handle API errors
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to check username. Please try again.";
+        setValidation({
+          isValid: false,
+          error: errorMessage,
+        });
+      });
+  }, [futureUsername, username, checkUsername]);
 
   const handleUsernameChange = (value: string) => {
-    setUsername(value);
-    const validationResult = validateUsername(value);
-    setValidation({
-      isValid: validationResult.isValid,
-      error: validationResult.error || "",
-    });
+    setFutureUsername(value);
   };
 
   const handleContinueOrSkip = async () => {
-    if (username.trim()) {
-      const validationResult = validateUsername(username);
-      if (!validationResult.isValid) {
+    if (futureUsername.trim()) {
+      // Wait for any pending username check to complete
+      if (isChecking) {
+        return;
+      }
+
+      const validationResult = validateUsername(futureUsername);
+      if (!validationResult.isValid || !validation.isValid) {
         setValidation({
-          isValid: validationResult.isValid,
-          error: validationResult.error || "",
+          isValid: false,
+          error:
+            validationResult.error || validation.error || "Username is invalid",
         });
         return;
       }
 
+      // If username hasn't changed, no need to check availability
+      if (futureUsername === username) {
+        console.log("Username unchanged:", futureUsername);
+        // TODO: Replace with actual API call to update username if needed
+        router.push("/home");
+        return;
+      }
+
+      // Double-check username availability before proceeding for new usernames
       setIsLoading(true);
       try {
-        // Mock API call - simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Username updated:", username);
-        // Mock success - you can replace this with actual API call
-        alert(`Username successfully updated to: ${username}`);
+        const result = await checkUsername(futureUsername).unwrap();
+        if (!result.available) {
+          setValidation({
+            isValid: false,
+            error: result.message || "Username is already taken",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Username updated:", futureUsername);
+        // TODO: Replace with actual API call to update username
         // Navigate to next step or close modal
         router.push("/home");
-      } catch (error) {
-        console.error("Failed to update username:", error);
-        alert("Failed to update username. Please try again.");
+      } catch (error: any) {
+        console.error("Failed to check username:", error);
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to verify username. Please try again.";
+        setValidation({
+          isValid: false,
+          error: errorMessage,
+        });
       } finally {
         setIsLoading(false);
       }
@@ -90,11 +197,11 @@ export const UsernameUpdateFormModal: React.FC = () => {
                 onClick={handleContinueOrSkip}
                 variant="primary"
                 size="large"
-                disabled={isLoading}
+                disabled={isLoading || isChecking}
               >
-                {isLoading
-                  ? "Updating..."
-                  : username.trim()
+                {isLoading || isChecking
+                  ? "Checking..."
+                  : futureUsername.trim()
                     ? "Continue"
                     : "Skip for now"}
               </Button>
@@ -106,11 +213,11 @@ export const UsernameUpdateFormModal: React.FC = () => {
             <p className="mb-6 text-textSecondary">
               Choose your unique username. You can always change it later.
             </p>
-            <div className="flex flex-col items-center justify-center">
+            <div className="relative mb-8 w-full">
               <Input
                 inputId="username"
                 inputNamePlaceHolder="Username"
-                value={username}
+                value={futureUsername}
                 onChange={handleUsernameChange}
                 isInputTextValid={validation.isValid}
                 inputTextInvalidText={validation.error}
@@ -119,6 +226,16 @@ export const UsernameUpdateFormModal: React.FC = () => {
                 isInputNumeric={false}
               />
             </div>
+            <div className="mt-4">
+              <Button
+                onClick={handleCookieTest}
+                variant="secondary"
+                size="small"
+                disabled={isCookieTestLoading}
+              >
+                {isCookieTestLoading ? "Testing..." : "Test Cookie"}
+              </Button>
+            </div>
           </Modal>
         </main>
       </div>
@@ -126,44 +243,169 @@ export const UsernameUpdateFormModal: React.FC = () => {
   );
 };
 
-export const UsernameUpdateFormNonModal: React.FC = () => {
-  const [username, setUsername] = useState("");
+export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
+  isModal,
+  username,
+}) => {
+  // Initialize with current username only once - use lazy initializer
+  const [futureUsername, setFutureUsername] = useState<string>(
+    () => username || ""
+  );
   const [validation, setValidation] = useState({ isValid: true, error: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [isCookieTestLoading, setIsCookieTestLoading] =
+    useState<boolean>(false);
   const router = useRouter();
+  const [checkUsername, { isLoading: isChecking }] =
+    useLazyCheckUsernameQuery();
+
+  const handleCookieTest = async () => {
+    setIsCookieTestLoading(true);
+    try {
+      // Log all available cookies
+      const allCookies = document.cookie;
+      console.log("Available cookies:", allCookies);
+
+      // Parse cookies into an object
+      const cookies: Record<string, string> = {};
+      if (allCookies) {
+        allCookies.split(";").forEach((cookie) => {
+          const [name, value] = cookie.trim().split("=");
+          if (name && value) {
+            cookies[name] = decodeURIComponent(value);
+          }
+        });
+      }
+      console.log("Parsed cookies:", cookies);
+
+      // Call Next.js API route which will proxy to Rust backend with cookies
+      const cookieTestResponse = await fetch("/api/debug-cookies", {
+        method: "GET",
+        credentials: "include", // This will send cookies to Next.js API route
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const responseData = await cookieTestResponse.json();
+      console.log("Cookie test response:", responseData);
+      console.log("Cookies sent:", allCookies || "No cookies found");
+
+      alert(
+        `Response: ${JSON.stringify(responseData, null, 2)}\n\n` +
+          `Available cookies: ${allCookies || "None"}\n\n` +
+          `Check console for details.`
+      );
+    } catch (cookieError) {
+      console.error("Cookie test failed:", cookieError);
+      console.log("Available cookies:", document.cookie || "None");
+      alert(
+        `Cookie test failed. Check console for details.\n\n` +
+          `Available cookies: ${document.cookie || "None"}`
+      );
+    } finally {
+      setIsCookieTestLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Skip API call for empty or invalid usernames
+    const validationResult = validateUsername(futureUsername);
+    if (!futureUsername.trim() || !validationResult.isValid) {
+      setValidation({
+        isValid: validationResult.isValid,
+        error: validationResult.error || "",
+      });
+      return;
+    }
+
+    // If the future username is the same as current username, it's valid (no API call needed)
+    if (futureUsername === username) {
+      setValidation({ isValid: true, error: "" });
+      return;
+    }
+
+    // Call API immediately on every keystroke for different usernames
+    checkUsername(futureUsername)
+      .unwrap()
+      .then((result) => {
+        if (result.available) {
+          setValidation({ isValid: true, error: "" });
+        } else {
+          setValidation({
+            isValid: false,
+            error: result.message || "Username is already taken",
+          });
+        }
+      })
+      .catch((error: any) => {
+        // Handle API errors
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to check username. Please try again.";
+        setValidation({
+          isValid: false,
+          error: errorMessage,
+        });
+      });
+  }, [futureUsername, username, checkUsername]);
 
   const handleUsernameChange = (value: string) => {
-    setUsername(value);
-    const validationResult = validateUsername(value);
-    setValidation({
-      isValid: validationResult.isValid,
-      error: validationResult.error || "",
-    });
+    setFutureUsername(value);
   };
 
   const handleContinueOrSkip = async () => {
-    if (username.trim()) {
-      const validationResult = validateUsername(username);
-      if (!validationResult.isValid) {
+    if (futureUsername.trim()) {
+      // Wait for any pending username check to complete
+      if (isChecking) {
+        return;
+      }
+
+      const validationResult = validateUsername(futureUsername);
+      if (!validationResult.isValid || !validation.isValid) {
         setValidation({
-          isValid: validationResult.isValid,
-          error: validationResult.error || "",
+          isValid: false,
+          error:
+            validationResult.error || validation.error || "Username is invalid",
         });
         return;
       }
 
+      // If username hasn't changed, no need to check availability
+      if (futureUsername === username) {
+        console.log("Username unchanged:", futureUsername);
+
+        return;
+      }
+
+      // Double-check username availability before proceeding for new usernames
       setIsLoading(true);
       try {
-        // Mock API call - simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Username updated:", username);
-        // Mock success - you can replace this with actual API call
-        alert(`Username successfully updated to: ${username}`);
+        const result = await checkUsername(futureUsername).unwrap();
+        if (!result.available) {
+          setValidation({
+            isValid: false,
+            error: result.message || "Username is already taken",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        console.log("Username updated:", futureUsername);
+        // TODO: Replace with actual API call to update username
         // Navigate to next step
         router.push("/home");
-      } catch (error) {
-        console.error("Failed to update username:", error);
-        alert("Failed to update username. Please try again.");
+      } catch (error: any) {
+        console.error("Failed to check username:", error);
+        const errorMessage =
+          error?.data?.message ||
+          error?.message ||
+          "Failed to verify username. Please try again.";
+        setValidation({
+          isValid: false,
+          error: errorMessage,
+        });
       } finally {
         setIsLoading(false);
       }
@@ -190,27 +432,27 @@ export const UsernameUpdateFormNonModal: React.FC = () => {
                 onClick={handleContinueOrSkip}
                 variant="primary"
                 size="large"
-                disabled={isLoading}
+                disabled={isLoading || isChecking}
               >
-                {isLoading
-                  ? "Updating..."
-                  : username.trim()
+                {isLoading || isChecking
+                  ? "Checking..."
+                  : futureUsername.trim()
                     ? "Continue"
                     : "Skip for now"}
               </Button>
             }
           >
-            <h1 className="mb-6 text-2xl font-bold md:text-3xl">
+            <h1 className="mb-4 text-2xl font-bold md:text-3xl">
               Pick a username
             </h1>
             <p className="mb-6 text-textSecondary">
               Choose your unique username. You can always change it later.
             </p>
-            <div className="flex flex-col items-center justify-center">
+            <div className="relative mb-8 w-full">
               <Input
                 inputId="username"
                 inputNamePlaceHolder="Username"
-                value={username}
+                value={futureUsername}
                 onChange={handleUsernameChange}
                 isInputTextValid={validation.isValid}
                 inputTextInvalidText={validation.error}
@@ -218,6 +460,16 @@ export const UsernameUpdateFormNonModal: React.FC = () => {
                 showCharCount={true}
                 isInputNumeric={false}
               />
+            </div>
+            <div className="mt-4">
+              <Button
+                onClick={handleCookieTest}
+                variant="secondary"
+                size="small"
+                disabled={isCookieTestLoading}
+              >
+                {isCookieTestLoading ? "Testing..." : "Test Cookie"}
+              </Button>
             </div>
           </Modal>
         </main>
