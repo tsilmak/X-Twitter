@@ -1,10 +1,16 @@
 export enum ApiExceptions {
+  // Java Exceptions
   EmailAlreadyTakenException = "EmailAlreadyTakenException",
   EmailFailedToSendException = "EmailFailedToSendException",
   IncorrectVerificationCodeException = "IncorrectVerificationCodeException",
   UserAlreadyVerifiedException = "UserAlreadyVerifiedException",
   UserDoesNotExistException = "UserDoesNotExistException",
   VerificationCodeExpiredException = "VerificationCodeExpiredException",
+
+  // Rust Exceptions
+  UserNotAuthorizedException = "UserNotAuthorizedException",
+
+  // Common Exceptions (Rust & Java)
 }
 
 export enum StatusCodes {

@@ -32,7 +32,7 @@ services:
       BREVO_API_KEY: your-brevo-api-key
       SMTP_MY_EMAIL: your-email@example.com
       ORIGIN_BASEURL: http://localhost:3000
-      JWT_SECRET: your-jwt-secret-key-change-this-in-production
+      JWT_SECRET: f6d543dd04c5e6e79fb4ad2512a35e1fbeb28213790f8c48dddf75daa278aa4ab0f3b979
       JWT_EXPIRATION: 86400000
       REDIS_HOST: redis
       REDIS_PORT: 6379

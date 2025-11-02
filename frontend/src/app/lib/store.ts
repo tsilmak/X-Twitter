@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { apiSlice } from "./api/apiSlice";
-import { usernameApi } from "./api/usernameApi";
 import userSlice from "./features/user/userSlice";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
@@ -25,14 +24,13 @@ export const makeStore = () => {
     reducer: {
       user: persistedUserReducer,
       [apiSlice.reducerPath]: apiSlice.reducer,
-      [usernameApi.reducerPath]: usernameApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: {
           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
         },
-      }).concat(apiSlice.middleware, usernameApi.middleware),
+      }).concat(apiSlice.middleware),
   });
 };
 

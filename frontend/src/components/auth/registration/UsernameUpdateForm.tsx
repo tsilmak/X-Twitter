@@ -4,9 +4,39 @@ import Modal from "@/components/common/Modal";
 import Button from "@/components/form/Button";
 import Input from "@/components/form/Input";
 import { useRouter } from "next/navigation";
-import { useLazyCheckUsernameQuery } from "@/app/lib/api/usernameApi";
 import { UpdateUserInfoForm } from "@/@types";
 import { validateUsername } from "@/utils/lib";
+
+interface CheckUsernameResponse {
+  available: boolean;
+  message?: string;
+}
+
+const checkUsername = async (
+  username: string
+): Promise<CheckUsernameResponse> => {
+  const response = await fetch(
+    `/api/check-username/?username=${encodeURIComponent(username)}`,
+    {
+      method: "GET",
+      credentials: "include", // This will send cookies to Next.js API route
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      error: "Failed to check username",
+    }));
+    throw new Error(
+      errorData.message || errorData.error || "Failed to check username"
+    );
+  }
+
+  return response.json();
+};
 
 export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
   isModal,
@@ -18,11 +48,10 @@ export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
   );
   const [validation, setValidation] = useState({ isValid: true, error: "" });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
   const [isCookieTestLoading, setIsCookieTestLoading] =
     useState<boolean>(false);
   const router = useRouter();
-  const [checkUsername, { isLoading: isChecking }] =
-    useLazyCheckUsernameQuery();
 
   const handleCookieTest = async () => {
     setIsCookieTestLoading(true);
@@ -91,8 +120,8 @@ export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
     }
 
     // Call API immediately on every keystroke for different usernames
+    setIsChecking(true);
     checkUsername(futureUsername)
-      .unwrap()
       .then((result) => {
         if (result.available) {
           setValidation({ isValid: true, error: "" });
@@ -106,15 +135,16 @@ export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
       .catch((error: any) => {
         // Handle API errors
         const errorMessage =
-          error?.data?.message ||
-          error?.message ||
-          "Failed to check username. Please try again.";
+          error?.message || "Failed to check username. Please try again.";
         setValidation({
           isValid: false,
           error: errorMessage,
         });
+      })
+      .finally(() => {
+        setIsChecking(false);
       });
-  }, [futureUsername, username, checkUsername]);
+  }, [futureUsername, username]);
 
   const handleUsernameChange = (value: string) => {
     setFutureUsername(value);
@@ -148,7 +178,7 @@ export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
       // Double-check username availability before proceeding for new usernames
       setIsLoading(true);
       try {
-        const result = await checkUsername(futureUsername).unwrap();
+        const result = await checkUsername(futureUsername);
         if (!result.available) {
           setValidation({
             isValid: false,
@@ -165,9 +195,7 @@ export const UsernameUpdateFormModal: React.FC<UpdateUserInfoForm> = ({
       } catch (error: any) {
         console.error("Failed to check username:", error);
         const errorMessage =
-          error?.data?.message ||
-          error?.message ||
-          "Failed to verify username. Please try again.";
+          error?.message || "Failed to verify username. Please try again.";
         setValidation({
           isValid: false,
           error: errorMessage,
@@ -253,11 +281,10 @@ export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
   );
   const [validation, setValidation] = useState({ isValid: true, error: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
   const [isCookieTestLoading, setIsCookieTestLoading] =
     useState<boolean>(false);
   const router = useRouter();
-  const [checkUsername, { isLoading: isChecking }] =
-    useLazyCheckUsernameQuery();
 
   const handleCookieTest = async () => {
     setIsCookieTestLoading(true);
@@ -326,8 +353,8 @@ export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
     }
 
     // Call API immediately on every keystroke for different usernames
+    setIsChecking(true);
     checkUsername(futureUsername)
-      .unwrap()
       .then((result) => {
         if (result.available) {
           setValidation({ isValid: true, error: "" });
@@ -341,15 +368,16 @@ export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
       .catch((error: any) => {
         // Handle API errors
         const errorMessage =
-          error?.data?.message ||
-          error?.message ||
-          "Failed to check username. Please try again.";
+          error?.message || "Failed to check username. Please try again.";
         setValidation({
           isValid: false,
           error: errorMessage,
         });
+      })
+      .finally(() => {
+        setIsChecking(false);
       });
-  }, [futureUsername, username, checkUsername]);
+  }, [futureUsername, username]);
 
   const handleUsernameChange = (value: string) => {
     setFutureUsername(value);
@@ -382,7 +410,7 @@ export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
       // Double-check username availability before proceeding for new usernames
       setIsLoading(true);
       try {
-        const result = await checkUsername(futureUsername).unwrap();
+        const result = await checkUsername(futureUsername);
         if (!result.available) {
           setValidation({
             isValid: false,
@@ -399,9 +427,7 @@ export const UsernameUpdateFormNonModal: React.FC<UpdateUserInfoForm> = ({
       } catch (error: any) {
         console.error("Failed to check username:", error);
         const errorMessage =
-          error?.data?.message ||
-          error?.message ||
-          "Failed to verify username. Please try again.";
+          error?.message || "Failed to verify username. Please try again.";
         setValidation({
           isValid: false,
           error: errorMessage,

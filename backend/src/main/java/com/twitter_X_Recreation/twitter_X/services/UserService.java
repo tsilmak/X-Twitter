@@ -88,6 +88,8 @@ public class UserService {
         ApplicationUser savedUser = userRepository.save(applicationUser);
         String token = generateJwtToken(savedUser, 900000);
 
+        System.out.println(jwtSecret);
+
         Cookie jwtCookie = new Cookie("register_token", token);
         jwtCookie.setHttpOnly(true);
         jwtCookie.setSecure(cookieSecure);
