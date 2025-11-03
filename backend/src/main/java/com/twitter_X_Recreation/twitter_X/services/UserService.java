@@ -90,11 +90,12 @@ public class UserService {
 
         System.out.println(jwtSecret);
 
+        // This token will validate the user for email confirmation and password
         Cookie jwtCookie = new Cookie("register_token", token);
         jwtCookie.setHttpOnly(true);
         jwtCookie.setSecure(cookieSecure);
         jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(24 * 60 * 60);
+        jwtCookie.setMaxAge(9000); // 2 hours 30 minutes
 
         String cookieHeader = String.format("%s=%s; %s=%s; %s=%s; %s; %s; %s=%s",
                 jwtCookie.getName(),

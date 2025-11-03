@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sendinblue.ApiException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -48,11 +47,7 @@ public class AuthenticationController {
             );
             return new ResponseEntity<>(sanitizedUser, HttpStatus.CREATED);
         } catch (EmailAlreadyTakenException e) {
-            throw new ApiExceptionHandler.ApiErrorException.Builder()
-                    .exception(e.getClass().getSimpleName())
-                    .error(e.getMessage())
-                    .path(request.getRequestURI())
-                    .build();
+            throw ApiExceptionHandler.of(request, HttpStatus.CONFLICT, e);
 
         }
     }
@@ -63,9 +58,10 @@ public class AuthenticationController {
         }
     @PutMapping("/update/phone")
     public ResponseEntity<?> updatePhoneNumber(@RequestBody UpdatePhoneRequest phoneUpdateRequest,
-                                               @CookieValue(name = "register_token", required = false) String token) {
+                                               @CookieValue(name = "register_token", required = false) String token,
+                                               HttpServletRequest request) {
         if (token == null || token.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing authentication token");
+            throw new MissingAuthenticationTokenException();
             }
 
         try {
@@ -73,7 +69,7 @@ public class AuthenticationController {
             JWSVerifier verifier = new MACVerifier(userService.getJwtSecret().getBytes());
 
             if (!signedJWT.verify(verifier)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT");
+                throw new InvalidJWTException();
             }
 
             String usernameFromToken = signedJWT.getJWTClaimsSet().getSubject();
@@ -90,8 +86,10 @@ public class AuthenticationController {
             responseBody.put("message", "Phone number updated successfully");
             return ResponseEntity.ok(responseBody);
 
+            } catch (MissingAuthenticationTokenException | InvalidJWTException e) {
+                throw ApiExceptionHandler.of(request, HttpStatus.UNAUTHORIZED, e);
             } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to process request: " + e.getMessage());
+                throw ApiExceptionHandler.of(request, HttpStatus.BAD_REQUEST, e);
             }
         }
     @ExceptionHandler({EmailFailedToSendException.class})
@@ -102,16 +100,16 @@ public class AuthenticationController {
     @PostMapping("/email/code")
     public ResponseEntity<?> createEmailVerificationCode(@RequestBody LinkedHashMap<String, String> body,HttpServletRequest request,
                                                              @CookieValue(name = "register_token", required = false) String token) {
+        if (token == null || token.isEmpty()) {
+            throw new MissingAuthenticationTokenException();
+        }
         try {
-            if (token == null || token.isEmpty()) {
-                return new ResponseEntity<>("Missing authentication token", HttpStatus.UNAUTHORIZED);
-            }
 
             SignedJWT signedJWT = SignedJWT.parse(token);
             JWSVerifier verifier = new MACVerifier(userService.getJwtSecret().getBytes());
 
             if (!signedJWT.verify(verifier)) {
-                return new ResponseEntity<>("Invalid JWT", HttpStatus.UNAUTHORIZED);
+                throw new InvalidJWTException();
             }
 
             String usernameFromToken = signedJWT.getJWTClaimsSet().getSubject();
@@ -127,11 +125,7 @@ public class AuthenticationController {
             responseBody.put("message", "Verification code generated and email sent successfully");
             return new ResponseEntity<>(responseBody, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ApiExceptionHandler.ApiErrorException.Builder()
-                    .exception(e.getClass().getSimpleName())
-                    .error(e.getMessage())
-                    .path(request.getRequestURI())
-                    .build();
+            throw ApiExceptionHandler.of(request, HttpStatus.BAD_REQUEST, e);
         }
     }
 
@@ -149,16 +143,16 @@ public class AuthenticationController {
     @PostMapping("/email/code/verify")
     public ResponseEntity<?> verifyEmailCode(@RequestBody LinkedHashMap<String, String> body, HttpServletRequest request,
                                              @CookieValue(name = "register_token", required = false) String token) {
+        if (token == null || token.isEmpty()) {
+            throw new MissingAuthenticationTokenException();
+        }
         try {
-            if (token == null || token.isEmpty()) {
-                return new ResponseEntity<>("Missing authentication token", HttpStatus.UNAUTHORIZED);
-            }
 
             SignedJWT signedJWT = SignedJWT.parse(token);
             JWSVerifier verifier = new MACVerifier(userService.getJwtSecret().getBytes());
 
             if (!signedJWT.verify(verifier)) {
-                return new ResponseEntity<>("Invalid JWT", HttpStatus.UNAUTHORIZED);
+                throw new InvalidJWTException();
             }
 
             String usernameFromToken = signedJWT.getJWTClaimsSet().getSubject();
@@ -175,27 +169,24 @@ public class AuthenticationController {
             responseBody.put("message", "Email verified successfully");
             return new ResponseEntity<>(responseBody, HttpStatus.OK);
         } catch (Exception e) {
-            throw new ApiExceptionHandler.ApiErrorException.Builder()
-                    .exception(e.getClass().getSimpleName())
-                    .error(e.getMessage())
-                    .path(request.getRequestURI())
-                    .build();
+            throw ApiExceptionHandler.of(request, HttpStatus.BAD_REQUEST, e);
         }
     }
 
     @PutMapping("/update/password")
     public ResponseEntity<?> updatePassword(@RequestBody LinkedHashMap<String, String> body, HttpServletResponse response,
-                                            @CookieValue(name = "register_token", required = false) String token) {
+                                            @CookieValue(name = "register_token", required = false) String token,
+                                            HttpServletRequest request) {
+        if (token == null || token.isEmpty()) {
+            throw new MissingAuthenticationTokenException();
+        }
         try {
-            if (token == null || token.isEmpty()) {
-                return new ResponseEntity<>("Missing authentication token", HttpStatus.UNAUTHORIZED);
-            }
 
             SignedJWT signedJWT = SignedJWT.parse(token);
             JWSVerifier verifier = new MACVerifier(userService.getJwtSecret().getBytes());
 
             if (!signedJWT.verify(verifier)) {
-                return new ResponseEntity<>("Invalid JWT", HttpStatus.UNAUTHORIZED);
+                throw new InvalidJWTException();
             }
 
             String usernameFromToken = signedJWT.getJWTClaimsSet().getSubject();
@@ -212,7 +203,7 @@ public class AuthenticationController {
             responseBody.put("message", "Password updated successfully");
             return new ResponseEntity<>(responseBody, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>("Failed to process request: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            throw ApiExceptionHandler.of(request, HttpStatus.BAD_REQUEST, e);
             }
         }
 }

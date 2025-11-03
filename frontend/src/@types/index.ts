@@ -6,6 +6,10 @@ export enum ApiExceptions {
   UserAlreadyVerifiedException = "UserAlreadyVerifiedException",
   UserDoesNotExistException = "UserDoesNotExistException",
   VerificationCodeExpiredException = "VerificationCodeExpiredException",
+  MissingAuthenticationTokenException = "MissingAuthenticationTokenException",
+  InvalidJWTException = "InvalidJWTException",
+  // Add ParseException used by auth flows
+  ParseException = "ParseException",
 
   // Rust Exceptions
   UserNotAuthorizedException = "UserNotAuthorizedException",

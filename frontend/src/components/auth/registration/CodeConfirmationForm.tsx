@@ -10,6 +10,7 @@ import Input from "@/components/form/Input";
 import { extractApiError } from "@/utils/apiErrorHandler";
 import Modal from "@/components/common/Modal";
 import Button from "@/components/form/Button";
+import { ApiExceptions } from "@/@types";
 
 type CodeConfirmationFormProps = {
   email: string;
@@ -72,6 +73,24 @@ const CodeConfirmationForm: React.FC<CodeConfirmationFormProps> = ({
 
       // Extract API error message
       const apiError = extractApiError(err);
+
+      // Redirect on missing/invalid auth
+      const exception = apiError?.data?.exception as ApiExceptions | undefined;
+      if (
+        exception === ApiExceptions.MissingAuthenticationTokenException ||
+        exception === ApiExceptions.InvalidJWTException ||
+        exception === ApiExceptions.ParseException
+      ) {
+        // Show message before redirecting
+        setErrorMessage(
+          "Your session has expired. Please log in again or restart the password setup."
+        );
+        setIsInputError(true);
+        setTimeout(() => {
+          window.location.href = "/i/flow/login";
+        }, 1500);
+        return;
+      }
 
       if (apiError && apiError.data.error) {
         // Use the error message from the API
